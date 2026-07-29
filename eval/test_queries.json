@@ -1,0 +1,14 @@
+[
+  {
+    "id": "q1",
+    "query": "What does the health endpoint return?",
+    "expected_tool": "retrieve_docs",
+    "expected_source_contains": "main.py"
+  },
+  {
+    "id": "q2",
+    "query": "What is 47 * 892?",
+    "expected_tool": "run_code",
+    "expected_source_contains": null
+  }
+]

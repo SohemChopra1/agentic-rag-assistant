@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.venv/
+*.log
+
+# Node
+node_modules/
+dist/
+build/
+.vite/
+
+# Env / secrets
+.env
+.env.local
+*.pem
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Docker
+*.pid
+
+# Eval outputs
+eval/results/
+.pytest_cache/
