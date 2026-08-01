@@ -1,13 +1,13 @@
 [
   {
     "id": "q1",
-    "query": "What does the health endpoint return?",
+    "query": "How much sleep do adults doing resistance training need for recovery?",
     "expected_tool": "retrieve_docs",
-    "expected_source_contains": "main.py"
+    "expected_source_contains": "seven to nine hours"
   },
   {
     "id": "q2",
-    "query": "What is 47 * 892?",
+    "query": "If I did a 45 minute run at 160 avg heart rate followed by 30 minutes of lifting, roughly how many total calories did I burn?",
     "expected_tool": "run_code",
     "expected_source_contains": null
   }
