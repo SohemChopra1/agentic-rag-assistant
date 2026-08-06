@@ -98,8 +98,14 @@ python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 
-# ingest a source document
+# ingest a source document (or bulk via --manifest ../data/sources.json)
 python -m app.retrieval.ingest --file path/to/guidelines.pdf --title "..."
+
+# load chunked JSONL into the database (skips unchanged docs)
+python -m app.retrieval.load --in ../data/chunks.jsonl
+
+# embed any chunks that don't have an embedding yet — requires VOYAGE_API_KEY
+python -m app.retrieval.embed
 
 # frontend
 cd frontend

@@ -12,6 +12,27 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    # Without this, test_search.py / test_embed.py / test_load.py (14 tests)
+    # silently skip in CI — pytest would report "29 passed" with 14 of them
+    # never actually running, and nobody would notice from the green
+    # checkmark alone. This service gives them a real Postgres+pgvector to
+    # run against, matching docker-compose.yml.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: agentic_rag
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/agentic_rag
     steps:
       - uses: actions/checkout@v4
 

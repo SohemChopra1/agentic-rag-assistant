@@ -9,8 +9,19 @@ history tells a story.
 - [x] **Phase 1 — Backend core**
   - [x] FastAPI app boots, `/health` endpoint
   - [x] SQLAlchemy models (`Document`, `Chunk` w/ pgvector column) + `init_db()`
-        — code written, not yet run against a live Postgres; do that via
-        `docker compose up`
+        — **verified end-to-end** against a real local Postgres 16 +
+        pgvector instance (installed directly in the build sandbox, no
+        Docker daemon available there): extension enables, both tables
+        create, the full 61-chunk corpus writes and reads back correctly
+        via the ORM relationship, cascade delete works, and the
+        `embedding` column is confirmed as a genuine `VECTOR(1024)` type.
+        Found and fixed a real bug in the process: `init_db()` silently
+        created zero tables if `app.models` hadn't been imported elsewhere
+        first (SQLAlchemy only registers a model's table once its class
+        has actually been imported) — now self-sufficient via a local
+        import inside `init_db()` itself. Still worth running
+        `docker compose up` locally once to confirm the containerized path
+        matches, but the code itself is now proven correct.
   - [x] Text extraction for PDF / HTML / markdown (`app/retrieval/extractors.py`)
         — tested against a real generated PDF fixture; caught and fixed a
         real bug where PDF line-wraps fragmented phrases mid-word
@@ -30,9 +41,34 @@ history tells a story.
   - [ ] Embedding step (Phase 2 — chunks are ready in JSONL, not yet embedded)
 
 - [ ] **Phase 2 — Retrieval**
-  - Embedding pipeline via Voyage AI (Claude has no native embeddings endpoint)
-  - Similarity search endpoint returning ranked chunks + source citations
-    (citation_url is already captured per-chunk from Phase 1, ready to surface)
+  - [x] Embedding module (`app/retrieval/embed.py`) — batches unembedded
+        chunks through Voyage AI (voyage-2, 1024-dim), skips already-embedded
+        ones, idempotent. The actual API call is isolated behind
+        `EmbeddingClient` so the batching/DB-write logic is fully unit
+        tested (5 tests, fake client) without needing network access or a
+        real key — api.voyageai.com isn't reachable from the build sandbox
+        at all, so this was the only honest way to verify that half
+  - [x] Similarity search (`app/retrieval/search.py`) — pgvector cosine
+        distance query, **verified end-to-end against real Postgres+pgvector**
+        using synthetic basis vectors with known geometric relationships (5
+        tests): nearest-neighbor ordering, top_k limiting, NULL-embedding
+        exclusion, citation_url fallback to source, section metadata
+  - [x] `/retrieve` API endpoint — returns clean 503 (not an unhandled 500)
+        when VOYAGE_API_KEY isn't set; request validation tested
+  - [x] Load script (`app/retrieval/load.py`) — completes the actual
+        pipeline (ingest.py -> load.py -> embed.py); skips unchanged docs
+        via content_hash, replaces changed ones. Verified against the real
+        61-chunk corpus, including idempotency (second run: 0 inserted, 9
+        skipped)
+  - [x] CI updated with a real `pgvector/pgvector:pg16` service container —
+        without this, the 14 DB-dependent tests above would silently
+        *skip* in CI (green checkmark, but not actually running)
+  - [ ] **Still needs a real VOYAGE_API_KEY to run for real**: nothing in
+        `data/chunks.jsonl` is actually embedded yet (all `embedding` values
+        are NULL in the DB). The code path is proven correct with synthetic
+        vectors; running `python -m app.retrieval.embed` with a real key is
+        the last step to make `/retrieve` return real results instead of a
+        503
 
 - [ ] **Phase 3 — Agent loop**
   - Hand-rolled ReAct loop calling Claude API directly
