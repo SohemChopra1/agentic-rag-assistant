@@ -5,7 +5,10 @@ Phase 2.
 
 Sources can be passed individually via --file/--url, or in bulk via a
 --manifest JSON file: a list of {"type": "file"|"url", "location": "...",
-"title": "..."}.
+"title": "...", "citation_url": "..." (optional)}. citation_url matters
+when a source was fetched from the web and saved locally (e.g. cleaned
+into markdown) — it lets the record still point back to the original page
+for citation, instead of the local file path.
 
 Usage:
     python -m app.retrieval.ingest --file guidelines.pdf --title "CDC Physical Activity Guidelines"
@@ -30,7 +33,7 @@ def fetch_url_text(url: str) -> str:
     return extract_text_from_html(html)
 
 
-def ingest_source(source_type: str, location: str, title: str, out_f: IO) -> int:
+def ingest_source(source_type: str, location: str, title: str, out_f: IO, citation_url: str | None = None) -> int:
     text = fetch_url_text(location) if source_type == "url" else extract_text_from_file(Path(location))
     content_hash = hashlib.sha256(text.encode()).hexdigest()
     chunks = chunk_text(text)
@@ -39,6 +42,7 @@ def ingest_source(source_type: str, location: str, title: str, out_f: IO) -> int
         record = {
             "source_type": source_type,
             "source": location,
+            "citation_url": citation_url or (location if source_type == "url" else None),
             "title": title,
             "content_hash": content_hash,
             "section": c.section,
@@ -78,7 +82,13 @@ def main():
     total_chunks = 0
     with open(out_path, "w") as out_f:
         for src in sources:
-            n = ingest_source(src["type"], src["location"], src.get("title", src["location"]), out_f)
+            n = ingest_source(
+                src["type"],
+                src["location"],
+                src.get("title", src["location"]),
+                out_f,
+                citation_url=src.get("citation_url"),
+            )
             print(f"  {src['title']}: {n} chunks")
             total_chunks += n
 

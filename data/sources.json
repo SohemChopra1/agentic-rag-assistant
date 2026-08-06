@@ -1,0 +1,56 @@
+[
+  {
+    "type": "file",
+    "location": "data/raw/cdc_adding_physical_activity_adults.md",
+    "title": "Adding Physical Activity as an Adult (CDC)",
+    "citation_url": "https://www.cdc.gov/physical-activity-basics/adding-adults/index.html"
+  },
+  {
+    "type": "file",
+    "location": "data/raw/cdc_what_counts_physical_activity_adults.md",
+    "title": "What Counts as Physical Activity for Adults (CDC)",
+    "citation_url": "https://www.cdc.gov/physical-activity-basics/adding-adults/what-counts.html"
+  },
+  {
+    "type": "file",
+    "location": "data/raw/cdc_older_adult_activity_overview.md",
+    "title": "Older Adult Activity: An Overview (CDC)",
+    "citation_url": "https://www.cdc.gov/physical-activity-basics/guidelines/older-adults.html"
+  },
+  {
+    "type": "file",
+    "location": "data/raw/cdc_water_healthier_drinks.md",
+    "title": "About Water and Healthier Drinks (CDC)",
+    "citation_url": "https://www.cdc.gov/healthy-weight-growth/water-healthy-drinks/index.html"
+  },
+  {
+    "type": "file",
+    "location": "data/raw/nih_hydrating_for_health.md",
+    "title": "Hydrating for Health (NIH News in Health)",
+    "citation_url": "https://newsinhealth.nih.gov/2023/05/hydrating-health"
+  },
+  {
+    "type": "file",
+    "location": "data/raw/nih_weekend_sleep_deprivation.md",
+    "title": "Weekend Catch-Up Can't Counter Chronic Sleep Deprivation (NIH)",
+    "citation_url": "https://www.nih.gov/news-events/nih-research-matters/weekend-catch-cant-counter-chronic-sleep-deprivation"
+  },
+  {
+    "type": "file",
+    "location": "data/raw/nia_four_types_exercise.md",
+    "title": "Four Types of Exercise Can Improve Your Health and Physical Ability (NIA)",
+    "citation_url": "https://www.nia.nih.gov/health/four-types-exercise-can-improve-your-health-and-physical-ability"
+  },
+  {
+    "type": "file",
+    "location": "data/raw/wikipedia_progressive_overload.md",
+    "title": "Progressive Overload (Wikipedia, CC BY-SA)",
+    "citation_url": "https://en.wikipedia.org/wiki/Progressive_overload"
+  },
+  {
+    "type": "file",
+    "location": "data/raw/dietary_guidelines_2025_2030.md",
+    "title": "Dietary Guidelines for Americans, 2025-2030 (USDA/HHS)",
+    "citation_url": "https://www.realfood.gov"
+  }
+]

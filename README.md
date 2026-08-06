@@ -54,12 +54,35 @@ routed to a calculation tool instead of a hallucinated number.
 
 The ingestion pipeline (`backend/app/retrieval/`) accepts any PDF, web
 article, or markdown/text note via `--file`, `--url`, or a `--manifest`
-JSON file listing many sources at once. For your own corpus this could be:
+JSON file listing many sources at once.
 
-- Public-domain government guidelines (CDC, USDA, ODPHP — no copyright
-  restrictions, safe to fully ingest and store)
-- Research summaries or position stands you have the right to use
-- Your own training notes / saved articles
+The repo currently ships with a real starter corpus of **9 sources / 61
+chunks** (`data/sources.json` is the manifest, `data/raw/` has the cleaned
+source text, `data/chunks.jsonl` is the ingested output):
+
+| Source | Publisher | Topic |
+|---|---|---|
+| Adding Physical Activity as an Adult | CDC | Aerobic + strength guidelines |
+| What Counts as Physical Activity for Adults | CDC | Intensity, reps, sets |
+| Older Adult Activity: An Overview | CDC | Age-specific guidance |
+| About Water and Healthier Drinks | CDC | Hydration |
+| Hydrating for Health | NIH News in Health | Hydration research |
+| Weekend Catch-Up Can't Counter Chronic Sleep Deprivation | NIH | Sleep + metabolism |
+| Four Types of Exercise | NIA | Endurance/strength/balance/flexibility |
+| Progressive Overload | Wikipedia (CC BY-SA) | Muscle physiology mechanism |
+| Dietary Guidelines for Americans, 2025-2030 | USDA/HHS | Full nutrition guidance |
+
+All sources are either U.S. government works (no copyright — safe to fully
+ingest and store) or CC BY-SA licensed (Wikipedia, reused with
+attribution). Commercial fitness/nutrition sites were deliberately excluded
+from bulk ingestion since that content is copyrighted.
+
+Re-run ingestion at any time with:
+```bash
+python -m app.retrieval.ingest --manifest ../data/sources.json --out ../data/chunks.jsonl
+```
+(run from `backend/`, or adjust paths — the manifest's file paths are
+relative to the repo root)
 
 ## Status
 

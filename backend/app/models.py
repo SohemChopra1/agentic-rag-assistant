@@ -25,7 +25,8 @@ class Document(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String(500))
     source_type: Mapped[str] = mapped_column(String(20))       # "pdf" | "url" | "file"
-    source: Mapped[str] = mapped_column(String(1000))          # file path or URL
+    source: Mapped[str] = mapped_column(String(1000))          # file path or URL actually ingested from
+    citation_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)  # original web source, if different from `source`
     content_hash: Mapped[str] = mapped_column(String(64))      # skip re-ingesting unchanged docs
     ingested_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)

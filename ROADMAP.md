@@ -9,29 +9,30 @@ history tells a story.
 - [x] **Phase 1 — Backend core**
   - [x] FastAPI app boots, `/health` endpoint
   - [x] SQLAlchemy models (`Document`, `Chunk` w/ pgvector column) + `init_db()`
-        (enables the `vector` extension, creates tables) — code written,
-        not yet run against a live Postgres; do that via `docker compose up`
+        — code written, not yet run against a live Postgres; do that via
+        `docker compose up`
   - [x] Text extraction for PDF / HTML / markdown (`app/retrieval/extractors.py`)
         — tested against a real generated PDF fixture; caught and fixed a
         real bug where PDF line-wraps fragmented phrases mid-word
-        ("glycogen\nreplenishment" instead of "glycogen replenishment")
   - [x] Prose chunker (`app/retrieval/chunker.py`) — chunks by paragraph,
         tracks markdown headings as section metadata, splits oversized
-        paragraphs by sentence. 13 unit tests covering heading detection,
-        multi-section documents, overlap, and edge cases
+        paragraphs by sentence. 7 unit tests
   - [x] Generic ingestion script (`app/retrieval/ingest.py`) — accepts
-        `--file` (PDF/txt/md), `--url`, or a `--manifest` of many sources;
-        verified end-to-end against a PDF fixture, producing valid JSONL
+        `--file`, `--url`, or `--manifest`; preserves original citation
+        URLs even for locally-saved/cleaned sources
+  - [x] **Real corpus ingested**: 9 public-domain / openly-licensed sources
+        (CDC, NIH, NIA, USDA/HHS Dietary Guidelines 2025-2030, Wikipedia
+        CC BY-SA) -> 61 chunks in `data/chunks.jsonl`. See `data/sources.json`
+        for the manifest and `data/raw/` for the cleaned source text.
+        Deliberately excludes copyrighted commercial fitness content
+        (Examine, Healthline, etc.) — only government works (no copyright)
+        and CC-licensed content were bulk-ingested.
   - [ ] Embedding step (Phase 2 — chunks are ready in JSONL, not yet embedded)
-  - **Note:** this pipeline previously targeted GitHub source code (AST-based
-    chunking of a Python repo); pivoted to prose/PDF ingestion for the
-    fitness/nutrition domain — old code-chunking approach removed entirely
-    rather than left as dead code.
 
 - [ ] **Phase 2 — Retrieval**
   - Embedding pipeline via Voyage AI (Claude has no native embeddings endpoint)
   - Similarity search endpoint returning ranked chunks + source citations
-  - Populate a real starter corpus (e.g. public-domain CDC/USDA guidelines)
+    (citation_url is already captured per-chunk from Phase 1, ready to surface)
 
 - [ ] **Phase 3 — Agent loop**
   - Hand-rolled ReAct loop calling Claude API directly
@@ -56,7 +57,8 @@ history tells a story.
   - GitHub Actions: lint, test, build on push
 
 - [ ] **Phase 7 — Evaluation**
-  - `eval/test_queries.json`: ~15-20 labeled fitness/nutrition queries
+  - `eval/test_queries.json`: labeled queries, phrases verified against the
+    actual ingested corpus (not assumed) before being committed
   - `eval/run_eval.py`: scores tool-selection accuracy + retrieval precision
   - Add eval results to README as a table
 

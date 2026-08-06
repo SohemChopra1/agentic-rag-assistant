@@ -1,12 +1,18 @@
 [
   {
     "id": "q1",
-    "query": "How much sleep do adults doing resistance training need for recovery?",
+    "query": "How many hours of sleep do experts recommend adults get each night?",
     "expected_tool": "retrieve_docs",
-    "expected_source_contains": "seven to nine hours"
+    "expected_source_contains": "at least 7 hours"
   },
   {
     "id": "q2",
+    "query": "How many grams of protein per kilogram of body weight do the current Dietary Guidelines recommend?",
+    "expected_tool": "retrieve_docs",
+    "expected_source_contains": "1.2 to 1.6 grams"
+  },
+  {
+    "id": "q3",
     "query": "If I did a 45 minute run at 160 avg heart rate followed by 30 minutes of lifting, roughly how many total calories did I burn?",
     "expected_tool": "run_code",
     "expected_source_contains": null
