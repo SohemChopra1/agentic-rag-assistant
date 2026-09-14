@@ -1,4 +1,4 @@
-# Agentic Fitness & Nutrition Assistant
+**Agentic Fitness & Nutrition Assistant**
 
 A full-stack AI agent that answers exercise, nutrition, and well-being
 questions by autonomously choosing between retrieval, computation, and
@@ -6,10 +6,10 @@ external tools — rather than a single static prompt. Built to demonstrate
 agent orchestration, retrieval-augmented generation, and production
 deployment practices (streaming, containerization, CI/CD, evaluation).
 
-## Why this project exists
+**Why this project?**
 
 Most "LLM wrapper" projects make one prompt call and return the output. This
-project implements a **reasoning loop**: the agent decides *which* tool to
+project implements a reasoning loop: the agent decides *which* tool to
 call, *when* to call it, and *how many steps* to take before answering —
 grounded in retrieved source documents (guidelines, research summaries,
 personal notes) with citations, not memory alone. E.g. "how much protein do
@@ -17,40 +17,20 @@ I need for my training load" gets answered from retrieved sources; "what's
 my estimated calorie burn for a 45 min run + 30 min lifting session" gets
 routed to a calculation tool instead of a hallucinated number.
 
-## Architecture
 
-```
-┌─────────────┐      SSE stream      ┌──────────────────┐
-│   React UI   │◄────────────────────┤   FastAPI server │
-│ (chat + auth)│─────────────────────►│   (agent loop)   │
-└─────────────┘      user query       └─────────┬────────┘
-                                                 │
-                          ┌──────────────────────┼──────────────────────┐
-                          │                      │                      │
-                    ┌─────▼─────┐         ┌──────▼──────┐        ┌──────▼──────┐
-                    │  Retrieval │         │  Code/Calc  │        │  External   │
-                    │  (pgvector)│         │   Sandbox   │        │     API     │
-                    └────────────┘         └─────────────┘        └─────────────┘
-                          │
-                    ┌─────▼─────┐
-                    │ PostgreSQL │  (embeddings, chat history, users)
-                    └────────────┘
-```
 
-## Stack
+**Stack**
 
-| Layer | Choice | Why |
-|---|---|---|
-| Frontend | React, SSE client | Streaming token-by-token responses |
-| Backend | FastAPI | Async, matches existing FastAPI experience |
-| Agent loop | Hand-rolled ReAct (Claude API) | Demonstrates understanding of the mechanics, not just a framework |
-| Retrieval | pgvector + PostgreSQL | Single datastore for vectors + relational data |
-| Ingestion | PDF / HTML / markdown extractors + prose chunker | Sources are guideline PDFs, articles, and notes — not code |
-| Auth | JWT | Standard, framework-agnostic |
-| Deployment | Docker, GitHub Actions CI/CD | Reproducible, automated |
-| Evaluation | Custom harness (`/eval`) | Scores tool-selection accuracy + retrieval relevance |
 
-## Data sources
+Frontend: React, SSE client 
+Backend: FastAPI 
+Agent loop: ReAct (Claude API) 
+Retrieval:  pgvector + PostgreSQL 
+Ingestion: PDF/HTML
+Deployment: Docker, GitHub Actions CI/CD 
+
+
+ **Data sources**
 
 The ingestion pipeline (`backend/app/retrieval/`) accepts any PDF, web
 article, or markdown/text note via `--file`, `--url`, or a `--manifest`
