@@ -6,10 +6,10 @@ The calculator tests include actual injection attempts, not just "does the
 happy path work" — this function's whole reason to exist is to reject
 exactly these inputs, so each rejection path needs its own assertion.
 """
+import time
 from unittest.mock import MagicMock, patch
 
 from app.agent.tools import execute_calculate, execute_retrieve_docs
-
 
 # ---- calculate: happy path -------------------------------------------------
 
@@ -70,6 +70,51 @@ def test_calculate_rejects_boolean():
 def test_calculate_malformed_expression():
     result = execute_calculate("2 +")
     assert result.startswith("Error evaluating expression:")
+
+
+# ---- calculate: resource-exhaustion attempts --------------------------------
+# These are legal arithmetic, so the AST allowlist alone lets them through.
+# Each must be rejected quickly instead of pinning a worker thread.
+
+
+def _assert_rejected_fast(expression: str):
+    start = time.perf_counter()
+    result = execute_calculate(expression)
+    elapsed = time.perf_counter() - start
+    assert result.startswith("Error evaluating expression:"), result
+    assert elapsed < 0.5, f"took {elapsed:.2f}s — bound was checked after computing, not before"
+
+
+def test_calculate_rejects_tower_exponent():
+    # right-associative: 9 ** (9 ** 9) — a ~370-million-digit integer
+    _assert_rejected_fast("9**9**9")
+
+
+def test_calculate_rejects_huge_single_exponent():
+    _assert_rejected_fast("2 ** 100000000")
+
+
+def test_calculate_rejects_escalating_multiplication():
+    _assert_rejected_fast("99999999 * 99999999 * 99999999")
+
+
+def test_calculate_rejects_float_overflow():
+    _assert_rejected_fast("1e308 * 10")
+
+
+def test_calculate_rejects_complex_result():
+    _assert_rejected_fast("(-8) ** 0.5")
+
+
+def test_calculate_rejects_overlong_expression():
+    _assert_rejected_fast("1+" * 150 + "1")
+
+
+def test_calculate_still_allows_normal_powers():
+    assert execute_calculate("2 ** 10") == "1024"
+    assert execute_calculate("2 ** -2") == "0.25"
+    assert execute_calculate("(-1) ** 1000001") == "-1"
+    assert execute_calculate("0 ** 1000000") == "0"
 
 
 # ---- execute_retrieve_docs --------------------------------------------------

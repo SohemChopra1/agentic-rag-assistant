@@ -7,6 +7,7 @@ than failing silently.
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from voyageai.error import VoyageError
 
 from app.db import get_db
 from app.retrieval.embed import EmbeddingClient
@@ -35,5 +36,11 @@ def retrieve(req: RetrieveRequest, db: Session = Depends(get_db)):
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
 
-    query_embedding = get_query_embedding(client, req.query)
+    try:
+        query_embedding = get_query_embedding(client, req.query)
+    except VoyageError as e:
+        # upstream outage / rate limit / bad key: our dependency is down,
+        # not our code broken — 503, not an unhandled 500
+        raise HTTPException(status_code=503, detail=f"Embedding service error: {e}") from e
+
     return search_chunks(db, query_embedding, top_k=req.top_k)

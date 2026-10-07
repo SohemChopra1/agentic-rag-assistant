@@ -55,7 +55,9 @@ def embed_missing_chunks(db: Session, client: EmbeddingClient, batch_size: int =
         texts = [c.content for c in chunks]
         embeddings = client.embed(texts, input_type="document")
 
-        for chunk, embedding in zip(chunks, embeddings):
+        # strict=True: if the API ever returns fewer vectors than texts, fail
+        # loudly instead of silently pairing chunks with the wrong embedding
+        for chunk, embedding in zip(chunks, embeddings, strict=True):
             chunk.embedding = embedding
         db.commit()
         total += len(chunks)

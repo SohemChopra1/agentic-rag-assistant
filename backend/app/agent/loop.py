@@ -2,14 +2,26 @@
 Hand-rolled ReAct agent loop using Anthropic's native tool-use API directly
 (no LangChain/LangGraph). Runs up to MAX_TURNS model calls, executing any
 tool_use blocks in between, until the model returns a final text answer.
+
+A tool that fails mid-loop (Voyage timeout or rate limit, DB hiccup) does
+not abort the request: the error goes back to the model as a tool_result
+with is_error=True, which is how the Messages API expects tool failures to
+be reported. The model can then retry, use the other tool, or tell the
+user the knowledge base is unavailable, instead of the whole /ask call
+dying as an unhandled 500. Misconfiguration (missing API keys) is
+different: it can't succeed on retry, so it is still raised up front.
 """
+import logging
+
 from anthropic import Anthropic
 
-from app.config import settings
 from app.agent.tools import ALL_TOOLS, execute_calculate, execute_retrieve_docs
+from app.config import settings
 from app.retrieval.embed import EmbeddingClient
 
-MODEL = "claude-sonnet-5"
+logger = logging.getLogger(__name__)
+
+MODEL = "claude-sonnet-5-5"
 MAX_TURNS = 5
 
 SYSTEM_PROMPT = """You are a fitness and nutrition assistant backed by a knowledge base of \
@@ -66,16 +78,26 @@ def run_agent(db, user_query: str) -> AgentResult:
                 continue
             tool_calls_made.append({"tool": block.name, "input": block.input})
 
-            if block.name == "retrieve_docs":
-                result_text = execute_retrieve_docs(db, embedding_client, block.input["query"])
-            elif block.name == "calculate":
-                result_text = execute_calculate(block.input["expression"])
-            else:
-                result_text = f"Unknown tool: {block.name}"
+            is_error = False
+            try:
+                if block.name == "retrieve_docs":
+                    result_text = execute_retrieve_docs(db, embedding_client, block.input["query"])
+                elif block.name == "calculate":
+                    result_text = execute_calculate(block.input["expression"])
+                else:
+                    result_text = f"Unknown tool: {block.name}"
+                    is_error = True
+            except Exception as e:  # noqa: BLE001 — reported to the model, logged for us
+                logger.exception("Tool %s failed", block.name)
+                # a failed DB statement leaves the session unusable until rolled back
+                db.rollback()
+                result_text = f"Tool {block.name} failed: {type(e).__name__}: {e}"
+                is_error = True
 
-            tool_results.append(
-                {"type": "tool_result", "tool_use_id": block.id, "content": result_text}
-            )
+            tool_result = {"type": "tool_result", "tool_use_id": block.id, "content": result_text}
+            if is_error:
+                tool_result["is_error"] = True
+            tool_results.append(tool_result)
 
         messages.append({"role": "user", "content": tool_results})
 

@@ -1,0 +1,12 @@
+# Explicit rule set so CI results don't change when ruff's defaults do.
+line-length = 140
+target-version = "py312"
+src = ["."]  # treat `app` as first-party for import sorting
+
+[lint]
+# E/W: pycodestyle, F: pyflakes (unused imports, undefined names),
+# I: import sorting, B: bugbear (likely bugs), BLE: blind `except Exception`
+select = ["E", "W", "F", "I", "B", "BLE"]
+ignore = [
+  "B008",  # `db: Session = Depends(get_db)` is FastAPI's dependency-injection idiom
+]

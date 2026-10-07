@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from app.retrieval.extractors import (
     extract_text_from_file,
     extract_text_from_html,
@@ -36,11 +38,8 @@ def test_extract_text_from_file_rejects_unsupported_type(tmp_path):
     bad_file = tmp_path / "notes.docx"
     bad_file.write_text("irrelevant")
 
-    try:
+    with pytest.raises(ValueError, match="Unsupported file type"):
         extract_text_from_file(bad_file)
-        assert False, "expected ValueError for unsupported file type"
-    except ValueError:
-        pass
 
 
 def test_extract_text_from_html_strips_tags_and_scripts():

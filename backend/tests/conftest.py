@@ -9,6 +9,7 @@ of these.
 """
 import pytest
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.db import SessionLocal, engine, init_db
 from app.models import Chunk, Document
@@ -19,7 +20,7 @@ def _db_available() -> bool:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         return True
-    except Exception:
+    except SQLAlchemyError:
         return False
 
 

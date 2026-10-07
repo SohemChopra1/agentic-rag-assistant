@@ -87,6 +87,27 @@ history tells a story.
         `AnthropicError` on both versions — added an explicit upfront
         `RuntimeError` guard in `run_agent()` rather than relying on the
         SDK's exception hierarchy for that case
+  - [x] **Hardening pass** (found by review, each confirmed by running it
+        and then covered by a regression test — 66 tests total):
+    - `calculate` blocked code execution but not resource exhaustion:
+      `9**9**9` is legal arithmetic and pinned a worker for minutes. Now
+      bounded by input length (200 chars), a magnitude check on every
+      intermediate result (1e15), and a `Pow` check that estimates
+      `exponent * log10(|base|)` *before* computing, so the huge number is
+      never built. Tests assert rejection in <0.5s
+    - A tool failure mid-loop (e.g. Voyage timeout) crashed `/ask` with an
+      unhandled 500. Now returned to the model as an `is_error` tool_result
+      (with a session rollback) so it can recover or say the knowledge base
+      is unavailable; `/retrieve` maps Voyage API errors to 503
+    - Model ID corrected to `claude-sonnet-5-5`
+    - `eval/test_queries.json` expected a nonexistent `run_code` tool on a
+      calorie-burn query the corpus can't answer (no MET data). Replaced
+      with a chained retrieve-then-calculate query, switched to an ordered
+      `expected_tools` list, and added `test_eval_queries.py`, which fails if
+      any expected tool doesn't exist or any expected phrase isn't in
+      `data/chunks.jsonl`
+    - `embed.py` pairs chunks with vectors via `zip(strict=True)`, so a
+      short API response fails loudly instead of mis-assigning embeddings
   - [ ] **Still needs a live check**: the orchestration logic is fully
         tested with mocks, but actual tool-selection quality by the live
         model — does it really chain `retrieve_docs` then `calculate` for
@@ -106,8 +127,13 @@ history tells a story.
 
 - [x] **Phase 6 — Ops** (partial — revisit once frontend/auth land)
   - [x] Dockerize both services, `docker-compose.yml` for local full stack
-  - [x] GitHub Actions: lint, test, build on push, with a real
-        `pgvector/pgvector:pg16` service container
+  - [x] GitHub Actions on push/PR, three jobs: ruff lint + pytest against a
+        real `pgvector/pgvector:pg16` service container; frontend
+        `npm run build`; backend Docker image build
+  - [x] Vite dev proxy fixed: `/api/*` is forwarded with the prefix
+        stripped (backend routes live at the root), and the target comes
+        from `VITE_API_TARGET` (`http://backend:8000` in docker compose,
+        where `localhost` is the frontend container itself)
 
 - [ ] **Phase 7 — Evaluation**
   - `eval/test_queries.json`: labeled queries, phrases verified against the

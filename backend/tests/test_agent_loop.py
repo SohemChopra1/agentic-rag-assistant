@@ -3,7 +3,7 @@ Unit tests for app.agent.loop.run_agent, using a fake Anthropic client so
 the orchestration logic (message threading, tool dispatch, loop
 termination) is verified without needing network access or a real API key.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -131,8 +131,51 @@ def test_run_agent_handles_unknown_tool_name(monkeypatch):
     assert result.answer == "done"
     # the fake tool result should have been threaded back in as a tool_result
     second_call_messages = fake_messages.calls[1]["messages"]
-    tool_result_content = second_call_messages[-1]["content"][0]["content"]
-    assert tool_result_content == "Unknown tool: not_a_real_tool"
+    tool_result = second_call_messages[-1]["content"][0]
+    assert tool_result["content"] == "Unknown tool: not_a_real_tool"
+    assert tool_result["is_error"] is True
+
+
+def test_run_agent_reports_failing_tool_to_model_instead_of_crashing(monkeypatch):
+    # e.g. a Voyage timeout during retrieve_docs: the request must not die
+    # as a 500 — the model gets an is_error tool_result and can recover
+    responses = [
+        FakeResponse(
+            content=[FakeToolUseBlock(id="t1", name="retrieve_docs", input={"query": "protein"})],
+            stop_reason="tool_use",
+        ),
+        FakeResponse(
+            content=[FakeTextBlock(text="The knowledge base is unavailable right now.")], stop_reason="end_turn"
+        ),
+    ]
+    fake_messages = _patch_clients(monkeypatch, responses)
+    fake_db = MagicMock()
+
+    with patch("app.agent.loop.execute_retrieve_docs", side_effect=ConnectionError("voyage timed out")):
+        result = run_agent(db=fake_db, user_query="how much protein?")
+
+    assert result.answer == "The knowledge base is unavailable right now."
+    tool_result = fake_messages.calls[1]["messages"][-1]["content"][0]
+    assert tool_result["is_error"] is True
+    assert "ConnectionError" in tool_result["content"]
+    assert "voyage timed out" in tool_result["content"]
+    fake_db.rollback.assert_called_once()  # session left usable for later turns
+
+
+def test_successful_tool_result_is_not_marked_as_error(monkeypatch):
+    responses = [
+        FakeResponse(
+            content=[FakeToolUseBlock(id="t1", name="calculate", input={"expression": "2+2"})],
+            stop_reason="tool_use",
+        ),
+        FakeResponse(content=[FakeTextBlock(text="4")], stop_reason="end_turn"),
+    ]
+    fake_messages = _patch_clients(monkeypatch, responses)
+
+    run_agent(db=MagicMock(), user_query="2+2")
+
+    tool_result = fake_messages.calls[1]["messages"][-1]["content"][0]
+    assert "is_error" not in tool_result
 
 
 def test_agent_stops_at_max_turns_instead_of_looping_forever(monkeypatch):
