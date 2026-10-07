@@ -10,18 +10,13 @@ history tells a story.
   - [x] FastAPI app boots, `/health` endpoint
   - [x] SQLAlchemy models (`Document`, `Chunk` w/ pgvector column) + `init_db()`
         — **verified end-to-end** against a real local Postgres 16 +
-        pgvector instance (installed directly in the build sandbox, no
-        Docker daemon available there): extension enables, both tables
-        create, the full 61-chunk corpus writes and reads back correctly
-        via the ORM relationship, cascade delete works, and the
-        `embedding` column is confirmed as a genuine `VECTOR(1024)` type.
-        Found and fixed a real bug in the process: `init_db()` silently
-        created zero tables if `app.models` hadn't been imported elsewhere
-        first (SQLAlchemy only registers a model's table once its class
-        has actually been imported) — now self-sufficient via a local
-        import inside `init_db()` itself. Still worth running
-        `docker compose up` locally once to confirm the containerized path
-        matches, but the code itself is now proven correct.
+        pgvector instance: extension enables, both tables create, the full
+        61-chunk corpus writes and reads back correctly via the ORM
+        relationship, cascade delete works, and the `embedding` column is
+        confirmed as a genuine `VECTOR(1024)` type. Found and fixed a real
+        bug in the process: `init_db()` silently created zero tables if
+        `app.models` hadn't been imported elsewhere first — now
+        self-sufficient via a local import inside `init_db()` itself.
   - [x] Text extraction for PDF / HTML / markdown (`app/retrieval/extractors.py`)
         — tested against a real generated PDF fixture; caught and fixed a
         real bug where PDF line-wraps fragmented phrases mid-word
@@ -38,45 +33,66 @@ history tells a story.
         Deliberately excludes copyrighted commercial fitness content
         (Examine, Healthline, etc.) — only government works (no copyright)
         and CC-licensed content were bulk-ingested.
-  - [ ] Embedding step (Phase 2 — chunks are ready in JSONL, not yet embedded)
 
-- [ ] **Phase 2 — Retrieval**
+- [x] **Phase 2 — Retrieval**
   - [x] Embedding module (`app/retrieval/embed.py`) — batches unembedded
         chunks through Voyage AI (voyage-2, 1024-dim), skips already-embedded
-        ones, idempotent. The actual API call is isolated behind
-        `EmbeddingClient` so the batching/DB-write logic is fully unit
-        tested (5 tests, fake client) without needing network access or a
-        real key — api.voyageai.com isn't reachable from the build sandbox
-        at all, so this was the only honest way to verify that half
+        ones, idempotent. Unit tested (5 tests, fake client) and then
+        **run for real** against the live corpus with a real `VOYAGE_API_KEY`
+        through Docker
   - [x] Similarity search (`app/retrieval/search.py`) — pgvector cosine
-        distance query, **verified end-to-end against real Postgres+pgvector**
-        using synthetic basis vectors with known geometric relationships (5
-        tests): nearest-neighbor ordering, top_k limiting, NULL-embedding
-        exclusion, citation_url fallback to source, section metadata
+        distance query, verified end-to-end against real Postgres+pgvector
+        using synthetic basis vectors (5 tests): nearest-neighbor ordering,
+        top_k limiting, NULL-embedding exclusion, citation_url fallback,
+        section metadata
   - [x] `/retrieve` API endpoint — returns clean 503 (not an unhandled 500)
-        when VOYAGE_API_KEY isn't set; request validation tested
+        when VOYAGE_API_KEY isn't set; request validation tested. **Verified
+        live**: a real query returned the Dietary Guidelines protein chunk
+        ranked first by cosine distance
   - [x] Load script (`app/retrieval/load.py`) — completes the actual
         pipeline (ingest.py -> load.py -> embed.py); skips unchanged docs
         via content_hash, replaces changed ones. Verified against the real
-        61-chunk corpus, including idempotency (second run: 0 inserted, 9
-        skipped)
+        61-chunk corpus, including idempotency
   - [x] CI updated with a real `pgvector/pgvector:pg16` service container —
-        without this, the 14 DB-dependent tests above would silently
-        *skip* in CI (green checkmark, but not actually running)
-  - [ ] **Still needs a real VOYAGE_API_KEY to run for real**: nothing in
-        `data/chunks.jsonl` is actually embedded yet (all `embedding` values
-        are NULL in the DB). The code path is proven correct with synthetic
-        vectors; running `python -m app.retrieval.embed` with a real key is
-        the last step to make `/retrieve` return real results instead of a
-        503
+        without this, the DB-dependent tests above would silently *skip*
+        in CI (green checkmark, but not actually running)
 
-- [ ] **Phase 3 — Agent loop**
-  - Hand-rolled ReAct loop calling Claude API directly
-  - Tool definitions: `retrieve_docs`, `run_code` (e.g. calorie/macro
-    calculations), one live external API tool
-  - Agent decides tool vs. direct answer based on query — e.g. "how much
-    protein do I need" -> retrieval; "calories burned in a 45 min run" ->
-    calculation tool, not a hallucinated number
+- [x] **Phase 3 — Agent loop**
+  - [x] Hand-rolled ReAct loop (`app/agent/loop.py`) calling the Anthropic
+        API directly (no LangChain/LangGraph) — up to 5 reasoning turns,
+        threads tool_use/tool_result blocks, terminates cleanly instead of
+        looping forever if the model never stops calling tools
+  - [x] Tool definitions (`app/agent/tools.py`): `retrieve_docs` (hits the
+        same embed+search stack as `/retrieve`) and `calculate` (arithmetic
+        for applying a retrieved guideline to a user's specific numbers,
+        e.g. g/kg protein x bodyweight)
+  - [x] `calculate` is **not** a raw `eval()`: a restricted `ast` walk
+        permits only numeric literals and `+ - * / ** %`, explicitly
+        rejecting `Call`, `Name`, comprehensions, strings, and booleans.
+        This matters because the expression can be influenced by retrieved
+        document content — a real `eval()` would turn a prompt-injected
+        chunk into arbitrary code execution. Tested against actual
+        injection attempts (`__import__`, `open()`, list comprehensions,
+        bare names, string literals, bool-as-int)
+  - [x] `/ask` endpoint (`app/agent/router.py`) — clean 503 on missing
+        `ANTHROPIC_API_KEY`/`VOYAGE_API_KEY` or an `AnthropicError`, 422 on
+        a malformed request
+  - [x] 22 new tests: safe-eval injection coverage, `execute_retrieve_docs`
+        formatting, and orchestration (direct answer / single-tool /
+        chained retrieve-then-calculate / unknown-tool / max-turns
+        termination / missing-key guard) against a fake Anthropic client —
+        no network or real API key needed to verify the loop logic itself
+  - [x] Upgraded `anthropic` 0.34.2 -> 1.11.0 (was stale); confirmed an
+        empty `ANTHROPIC_API_KEY` raises a bare `TypeError` rather than an
+        `AnthropicError` on both versions — added an explicit upfront
+        `RuntimeError` guard in `run_agent()` rather than relying on the
+        SDK's exception hierarchy for that case
+  - [ ] **Still needs a live check**: the orchestration logic is fully
+        tested with mocks, but actual tool-selection quality by the live
+        model — does it really chain `retrieve_docs` then `calculate` for
+        "how much protein should I eat if I weigh 80kg?" — hasn't been
+        confirmed against the real Anthropic + Voyage APIs yet. Run:
+        `curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" -d '{"query": "how much protein should I eat if I weigh 80kg?"}'`
 
 - [ ] **Phase 4 — Streaming + frontend**
   - SSE endpoint streaming agent steps + final answer
@@ -88,14 +104,16 @@ history tells a story.
   - JWT auth, user accounts
   - Chat history persisted in Postgres
 
-- [ ] **Phase 6 — Ops**
-  - Dockerize both services, `docker-compose.yml` for local full stack
-  - GitHub Actions: lint, test, build on push
+- [x] **Phase 6 — Ops** (partial — revisit once frontend/auth land)
+  - [x] Dockerize both services, `docker-compose.yml` for local full stack
+  - [x] GitHub Actions: lint, test, build on push, with a real
+        `pgvector/pgvector:pg16` service container
 
 - [ ] **Phase 7 — Evaluation**
   - `eval/test_queries.json`: labeled queries, phrases verified against the
     actual ingested corpus (not assumed) before being committed
   - `eval/run_eval.py`: scores tool-selection accuracy + retrieval precision
+    — needs wiring up against the now-real `/ask` endpoint
   - Add eval results to README as a table
 
 - [ ] **Phase 8 — Deploy**
