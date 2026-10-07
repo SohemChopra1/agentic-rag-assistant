@@ -22,12 +22,17 @@ routed to a calculation tool instead of a hallucinated number.
 **Stack**
 
 
-Frontend: React, SSE client 
-Backend: FastAPI 
-Agent loop: ReAct (Claude API) 
-Retrieval:  pgvector + PostgreSQL 
-Ingestion: PDF/HTML
-Deployment: Docker, GitHub Actions CI/CD 
+- Frontend: React, SSE client 
+
+- Backend: FastAPI 
+
+- Agent loop: ReAct (Claude API) 
+
+- Retrieval:  pgvector + PostgreSQL 
+
+- Ingestion: PDF/HTML
+
+- Deployment: Docker, GitHub Actions CI/CD 
 
 
  **Data sources**
