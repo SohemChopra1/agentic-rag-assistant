@@ -160,12 +160,16 @@ def execute_calculate(expression: str) -> str:
         return f"Error evaluating expression: {e}"
 
 
-def execute_retrieve_docs(
+def search_knowledge_base(
     db: Session, embedding_client: EmbeddingClient, query: str, top_k: int = 5
-) -> str:
+) -> list[dict]:
+    """Structured retrieval results: what the UI shows and the eval scores."""
     query_embedding = get_query_embedding(embedding_client, query)
-    results = search_chunks(db, query_embedding, top_k=top_k)
+    return search_chunks(db, query_embedding, top_k=top_k)
 
+
+def format_passages(results: list[dict]) -> str:
+    """Render retrieval results as the plain text the model reads and cites."""
     if not results:
         return "No relevant documents found in the knowledge base."
 
@@ -175,3 +179,9 @@ def execute_retrieve_docs(
         source = r.get("citation_url") or r.get("title")
         blocks.append(f"[{r['title']}{section}]\n{r['content']}\nSource: {source}")
     return "\n\n".join(blocks)
+
+
+def execute_retrieve_docs(
+    db: Session, embedding_client: EmbeddingClient, query: str, top_k: int = 5
+) -> str:
+    return format_passages(search_knowledge_base(db, embedding_client, query, top_k=top_k))

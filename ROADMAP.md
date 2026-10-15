@@ -116,11 +116,36 @@ history tells a story.
         than filling the gap from general knowledge
         `curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" -d '{"query": "how much protein should I eat if I weigh 80kg?"}'`
 
-- [ ] **Phase 4 — Streaming + frontend**
-  - SSE endpoint streaming agent steps + final answer
-  - React chat UI consuming the stream
-  - Show intermediate "thinking" steps (which tool was called and why) —
-    good for demos/interviews
+- [x] **Phase 4 — Streaming + frontend**
+  - [x] Agent loop restructured as an event generator (`agent_events`):
+        `tool_call` -> `tool_result` per tool, then a terminal `answer`.
+        `/ask` collects the events into its existing JSON response (all
+        Phase 3 tests pass unchanged); `POST /ask/stream` forwards each one
+        as a Server-Sent Event the moment it happens. One loop, two
+        transports — no duplicated orchestration logic
+  - [x] Two-phase error handling, because an SSE response commits to HTTP
+        200 on its first byte: missing API keys are checked *before*
+        streaming starts (real 503, same as `/ask`); failures mid-stream
+        become a terminal `error` event instead of a dropped connection
+  - [x] The stream owns its DB session (opened with the generator, closed
+        in its `finally`) rather than using `Depends(get_db)`, so the
+        session lives exactly as long as the loop that queries it
+  - [x] `retrieve_docs` results carry structured `sources` (title,
+        section, URL, chunk text, distance) alongside the text the model
+        reads — the UI renders them directly and Phase 7 can score them,
+        with no parsing of model-facing text
+  - [x] React chat UI: each step renders live on a trace (searches show
+        the exact passages the model read; calculations show the equation),
+        then the markdown answer. Stop button (AbortController), backend
+        status check, and clear messages for 503s and mid-stream errors
+  - [x] Incremental SSE parser (`fetch` + `ReadableStream`, since
+        `EventSource` can't POST), tested against the stream split at
+        every byte position — including mid-`\r\n` and mid-UTF-8 character
+  - [x] Verified end to end through the Vite proxy: events arrived at the
+        exact delays the server introduced (no buffering anywhere in the
+        chain); UI checked at desktop and 390px mobile widths
+  - [x] 13 new backend tests (event ordering, SSE wire format, error
+        phases, session cleanup) + 6 frontend tests; `npm test` added to CI
 
 - [ ] **Phase 5 — Auth + persistence**
   - JWT auth, user accounts

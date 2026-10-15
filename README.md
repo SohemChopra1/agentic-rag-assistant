@@ -101,12 +101,40 @@ npm run dev
 docker compose up --build
 ```
 
+## API
+
+| Endpoint | Returns |
+|---|---|
+| `GET /health` | `{"status": "ok"}` |
+| `POST /retrieve` `{"query", "top_k"}` | Top-k chunks with citations and cosine distance |
+| `POST /ask` `{"query"}` | Final answer + the list of tool calls the agent made |
+| `POST /ask/stream` `{"query"}` | The same run as Server-Sent Events, one per step |
+
+`/ask/stream` events, in the order they occur:
+
+```
+event: tool_call     {"type":"tool_call","id":"t1","tool":"calculate","input":{"expression":"80 * 1.2"}}
+event: tool_result   {"type":"tool_result","id":"t1","tool":"calculate","output":"96.0","is_error":false}
+event: answer        {"type":"answer","text":"...","completed":true}
+```
+
+`retrieve_docs` results also include `sources` (the structured chunks the
+model read). A failure after streaming has started arrives as a final
+`event: error` with a `message`; a missing API key is a plain HTTP 503.
+
+Try it:
+```bash
+curl -N -X POST http://localhost:8000/ask/stream -H "Content-Type: application/json" \
+  -d '{"query": "how much protein should I eat if I weigh 80kg?"}'
+```
+
 ## Environment variables
 
 Copy `.env.example` to `.env` in `backend/` and fill in:
 
 ```
 ANTHROPIC_API_KEY=
+VOYAGE_API_KEY=
 DATABASE_URL=postgresql://user:pass@localhost:5432/agentic_rag
 JWT_SECRET=
 ```
