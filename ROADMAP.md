@@ -108,11 +108,12 @@ history tells a story.
       `data/chunks.jsonl`
     - `embed.py` pairs chunks with vectors via `zip(strict=True)`, so a
       short API response fails loudly instead of mis-assigning embeddings
-  - [ ] **Still needs a live check**: the orchestration logic is fully
-        tested with mocks, but actual tool-selection quality by the live
-        model — does it really chain `retrieve_docs` then `calculate` for
-        "how much protein should I eat if I weigh 80kg?" — hasn't been
-        confirmed against the real Anthropic + Voyage APIs yet. Run:
+
+    LIVE CHECK: (real Anthropic + Voyage APIs): for "how much
+        protein should I eat if I weigh 80kg?"
+        the Dietary Guidelines' 1.2-1.6 g/kg chunk, returned 96-128 g/day
+        with a citation, and stated what the corpus couldn't answer rather
+        than filling the gap from general knowledge
         `curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" -d '{"query": "how much protein should I eat if I weigh 80kg?"}'`
 
 - [ ] **Phase 4 — Streaming + frontend**
