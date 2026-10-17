@@ -1,20 +1,165 @@
 [
   {
-    "id": "q1",
+    "id": "r01",
+    "category": "retrieval",
     "query": "How many hours of sleep do experts recommend adults get each night?",
     "expected_tools": ["retrieve_docs"],
-    "expected_source_contains": "at least 7 hours"
+    "expected_source_contains": "at least 7 hours of sleep"
   },
   {
-    "id": "q2",
-    "query": "How many grams of protein per kilogram of body weight do the current Dietary Guidelines recommend?",
+    "id": "r02",
+    "category": "retrieval",
+    "query": "How much moderate exercise should adults get each week?",
     "expected_tools": ["retrieve_docs"],
-    "expected_source_contains": "1.2 to 1.6 grams"
+    "expected_source_contains": "150 minutes of moderate-intensity"
   },
   {
-    "id": "q3",
+    "id": "r03",
+    "category": "retrieval",
+    "query": "How many reps should I do per set when strength training?",
+    "expected_tools": ["retrieve_docs"],
+    "expected_source_contains": "8 to 12 repetitions"
+  },
+  {
+    "id": "r04",
+    "category": "retrieval",
+    "query": "How much fluid should men and women drink per day?",
+    "expected_tools": ["retrieve_docs"],
+    "expected_source_contains": "9 cups of fluids a day for women and 13 cups for men"
+  },
+  {
+    "id": "r05",
+    "category": "retrieval",
+    "query": "What's the daily sodium limit for adults?",
+    "expected_tools": ["retrieve_docs"],
+    "expected_source_contains": "less than 2,300 mg per day of sodium"
+  },
+  {
+    "id": "r06",
+    "category": "retrieval",
+    "query": "How much caffeine is safe to have in a day?",
+    "expected_tools": ["retrieve_docs"],
+    "expected_source_contains": "up to 400 mg per day"
+  },
+  {
+    "id": "r07",
+    "category": "retrieval",
+    "query": "Can sleeping in on weekends make up for not sleeping enough during the week?",
+    "expected_tools": ["retrieve_docs"],
+    "expected_source_contains": "27% decrease in insulin sensitivity"
+  },
+  {
+    "id": "r08",
+    "category": "retrieval",
+    "query": "What is progressive overload?",
+    "expected_tools": ["retrieve_docs"],
+    "expected_source_contains": "gradual increase of the stress"
+  },
+  {
+    "id": "r09",
+    "category": "retrieval",
+    "query": "Is it okay to train the same muscles two days in a row?",
+    "expected_tools": ["retrieve_docs"],
+    "expected_source_contains": "don't exercise the same muscle group on any 2 days in a row"
+  },
+  {
+    "id": "c01",
+    "category": "retrieve_then_calculate",
     "query": "I weigh 80 kg. Based on the current Dietary Guidelines' protein recommendation, how many grams of protein should I eat per day?",
     "expected_tools": ["retrieve_docs", "calculate"],
-    "expected_source_contains": "1.2 to 1.6 grams"
+    "expected_source_contains": "1.2 to 1.6 grams",
+    "expected_answer_contains": ["96", "128"]
+  },
+  {
+    "id": "c02",
+    "category": "retrieve_then_calculate",
+    "query": "What's the most protein per day the Dietary Guidelines recommend for someone who weighs 65 kg?",
+    "expected_tools": ["retrieve_docs", "calculate"],
+    "expected_source_contains": "1.2 to 1.6 grams",
+    "expected_answer_contains": ["104"]
+  },
+  {
+    "id": "c03",
+    "category": "retrieve_then_calculate",
+    "query": "I eat 2,500 calories a day. What's the most of those calories that should come from saturated fat?",
+    "expected_tools": ["retrieve_docs", "calculate"],
+    "expected_source_contains": "should not exceed 10% of total daily calories",
+    "expected_answer_contains": ["250"]
+  },
+  {
+    "id": "c04",
+    "category": "retrieve_then_calculate",
+    "query": "If I want to meet the weekly vigorous-intensity aerobic guideline in 3 equal sessions, how long should each session be?",
+    "expected_tools": ["retrieve_docs", "calculate"],
+    "expected_source_contains": "75 minutes of vigorous-intensity",
+    "expected_answer_contains": ["25"]
+  },
+  {
+    "id": "c05",
+    "category": "retrieve_then_calculate",
+    "query": "Using the expert recommendation for men, how many cups of fluid should a man drink over a full week?",
+    "expected_tools": ["retrieve_docs", "calculate"],
+    "expected_source_contains": "13 cups for men",
+    "expected_answer_contains": ["91"]
+  },
+  {
+    "id": "k01",
+    "category": "calculate_only",
+    "query": "I ran 5.2 km on Monday, 6.8 km on Wednesday and 8 km on Saturday. How far did I run in total?",
+    "expected_tools": ["calculate"],
+    "expected_source_contains": null,
+    "expected_answer_contains": ["20"]
+  },
+  {
+    "id": "k02",
+    "category": "calculate_only",
+    "query": "I did 4 sets of 8 reps on bench press at 60 kg. What's the total weight I lifted across all sets?",
+    "expected_tools": ["calculate"],
+    "expected_source_contains": null,
+    "expected_answer_contains": ["1920"]
+  },
+  {
+    "id": "k03",
+    "category": "calculate_only",
+    "query": "If I eat 2,400 calories every day, how many calories is that over one week?",
+    "expected_tools": ["calculate"],
+    "expected_source_contains": null,
+    "expected_answer_contains": ["16800"]
+  },
+  {
+    "id": "o01",
+    "category": "out_of_scope",
+    "query": "How many grams of creatine should I take per day to build muscle?",
+    "expected_tools": ["retrieve_docs"],
+    "expected_source_contains": null,
+    "expected_refusal": true,
+    "absent_terms": ["creatine"]
+  },
+  {
+    "id": "o02",
+    "category": "out_of_scope",
+    "query": "Is intermittent fasting better than calorie counting for losing fat?",
+    "expected_tools": ["retrieve_docs"],
+    "expected_source_contains": null,
+    "expected_refusal": true,
+    "absent_terms": ["fasting"]
+  },
+  {
+    "id": "o03",
+    "category": "out_of_scope",
+    "query": "How many IU of vitamin D should I take as a daily supplement?",
+    "expected_tools": ["retrieve_docs"],
+    "expected_source_contains": null,
+    "expected_refusal": true,
+    "absent_terms": ["IU", "international units", "micrograms", "mcg"]
+  },
+  {
+    "id": "o04",
+    "category": "out_of_scope",
+    "query": "What heart rate zone burns the most fat?",
+    "expected_tools": ["retrieve_docs"],
+    "expected_source_contains": null,
+    "expected_refusal": true,
+    "absent_terms": ["heart rate zone", "fat-burning", "fat burning", "beats per minute"]
   }
 ]

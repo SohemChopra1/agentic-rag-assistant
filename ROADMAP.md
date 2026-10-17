@@ -161,12 +161,29 @@ history tells a story.
         from `VITE_API_TARGET` (`http://backend:8000` in docker compose,
         where `localhost` is the frontend container itself)
 
-- [ ] **Phase 7 — Evaluation**
-  - `eval/test_queries.json`: labeled queries, phrases verified against the
-    actual ingested corpus (not assumed) before being committed
-  - `eval/run_eval.py`: scores tool-selection accuracy + retrieval precision
-    — needs wiring up against the now-real `/ask` endpoint
-  - Add eval results to README as a table
+- [ ] **Phase 7 — Evaluation** (harness built and verified; live run pending)
+  - [x] 21 labeled questions in 4 groups: retrieval (9), retrieve-then-
+        calculate (5), calculate-only (3), out-of-scope (4). Every expected
+        passage verified verbatim in `data/chunks.jsonl`; every out-of-scope
+        topic verified *absent*, and tests enforce both, so a corpus change
+        that invalidates a label fails CI instead of skewing results
+  - [x] `eval/scoring.py`, pure and unit tested (37 tests): ordered-
+        subsequence tool matching (repeats allowed, wrong order fails),
+        hit rate @5 and MRR, whole-number answer matching that ignores
+        thousands separators, and a regex refusal heuristic scored only on
+        out-of-scope questions. Mutation-checked: swapping in exact-list
+        tool matching or substring number matching fails 9 tests
+  - [x] `eval/run_eval.py` drives the public API (`/ask/stream`, the same
+        stream the UI uses) plus `/retrieve` on the user's raw words as a
+        retriever-only baseline — so it can show whether the agent's own
+        query rewriting helps retrieval. `--repeats N` for run-to-run
+        variance; every run's tool calls, retrieved chunks and answer are
+        saved to `eval/results/` for auditing
+  - [x] Verified end to end against the real app, loop, tools, pgvector and
+        SSE (scripted model, deterministic embedder) with 3 planted
+        mistakes: the runner flagged exactly those 3 and nothing else
+  - [ ] Live run with real Anthropic + Voyage, results table in README
+        (`python eval/run_eval.py --repeats 3 --write-readme`)
 
 - [ ] **Phase 8 — Deploy**
   - Deploy to Render/Fly.io

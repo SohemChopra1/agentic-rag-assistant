@@ -141,17 +141,45 @@ JWT_SECRET=
 
 ## Evaluation
 
-`eval/test_queries.json` contains a labeled set of queries with expected tool
-choices and expected source content. Run:
+`eval/test_queries.json` holds 21 labeled questions in four groups:
+
+| Group | n | What a correct run looks like |
+|---|---|---|
+| Retrieval | 9 | searches, and a labeled passage is in the top 5 |
+| Retrieve, then calculate | 5 | searches *before* calculating; the answer has the right numbers |
+| Calculate only | 3 | calls `calculate`; the answer has the right number |
+| Out of scope | 4 | searches, then says the knowledge base can't answer |
+
+Labels are checked by tests (`backend/tests/test_eval_queries.py`): every
+expected passage must exist verbatim in `data/chunks.jsonl`, every expected
+tool must exist, and each out-of-scope topic lists terms that must stay
+*absent* from the corpus — so adding a source can't silently invalidate a
+label.
+
+With the stack running (`docker compose up`) and the backend venv active:
 
 ```bash
-cd eval
-python run_eval.py
+python eval/run_eval.py                  # one pass over all 21 questions
+python eval/run_eval.py --repeats 3      # average over 3 passes (model output varies)
+python eval/run_eval.py --write-readme   # also refresh the table below
 ```
 
-This reports tool-selection accuracy and retrieval precision/recall — the
-same evaluation rigor applied to the fraud-detection model in a companion
-project, here applied to agent behavior instead of a classifier.
+The harness goes through the public API (`/ask/stream`, plus `/retrieve`
+with the user's exact words as a retriever-only baseline), so it measures
+the system as deployed. Scoring rules (`eval/scoring.py`, unit tested):
+
+- **Tool selection**: expected tools appear *in order*; repeats are fine
+  (`retrieve → calculate → calculate` for a range counts as correct)
+- **Hit rate @5 / MRR**: is the labeled passage in the top 5, and at what
+  rank — for the agent's own search query and for the user's raw words
+- **Numeric answers**: whole-number match, ignoring thousands separators
+  (`1,920` matches `1920`; `20` does not match `2026` or `120`)
+- **Refusals**: a regex heuristic, scored only on out-of-scope questions;
+  every answer is saved to `eval/results/` so misses can be audited
+
+<!-- eval:start -->
+_Not run yet: run `python eval/run_eval.py --write-readme` with the stack up to fill this in._
+<!-- eval:end -->
 
 ## License
 

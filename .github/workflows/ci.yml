@@ -51,6 +51,12 @@ jobs:
       - name: Run tests
         run: pytest -v
 
+      # eval/ scoring rules: pure functions, no API keys or running stack
+      - name: Lint and test eval harness
+        run: |
+          ruff check --config ruff.toml ../eval
+          pytest -v ../eval
+
   frontend-build:
     runs-on: ubuntu-latest
     defaults:

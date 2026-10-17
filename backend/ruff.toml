@@ -10,3 +10,7 @@ select = ["E", "W", "F", "I", "B", "BLE"]
 ignore = [
   "B008",  # `db: Session = Depends(get_db)` is FastAPI's dependency-injection idiom
 ]
+
+[lint.isort]
+# eval/ modules import each other by bare name (run from eval/ or via pytest)
+known-first-party = ["app", "scoring", "run_eval"]
